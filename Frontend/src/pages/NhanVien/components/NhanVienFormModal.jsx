@@ -32,17 +32,6 @@ const NhanVienFormModal = ({
         </h2>
 
         <div className="grid grid-cols-2 gap-4">
-          {/* Mã NV */}
-          <div className="col-span-2">
-            <label className="font-medium mb-1 block">Mã NV</label>
-            <input
-              className="w-full border rounded-lg p-2"
-              value={formData.ma_nhan_vien || ""}
-              onChange={(e) => handleChange("ma_nhan_vien", e.target.value)}
-              disabled={!!editingNhanVien}
-            />
-          </div>
-
           {/* Tên NV */}
           <div className="col-span-2">
             <label className="font-medium mb-1 block">Tên NV</label>
