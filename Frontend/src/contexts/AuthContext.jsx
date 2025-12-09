@@ -33,6 +33,9 @@ export const AuthProvider = ({ children }) => {
       // Lấy token thật từ Backend 
       const { token, user } = response.data;
 
+      console.log('[AuthContext] Login successful, user:', user);
+      console.log('[AuthContext] Token:', token);
+
       // Lưu token 
       localStorage.setItem('user_token', token);
       localStorage.setItem('user_info', JSON.stringify(user));

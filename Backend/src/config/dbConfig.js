@@ -3,9 +3,8 @@ import 'dotenv/config';
 const dbConfig = {
     HOST: "localhost",
     USER: "root",
-    PORT: 1301,
-    PASSWORD: '123456', 
-    DB: "qlnv",
+    PASSWORD: 'tHanhduong231', 
+    DB: "Web_qlnv",
     dialect: 'mysql',
     pool: {
         max: 5,

@@ -60,6 +60,7 @@ const AppSidebar = ({ collapsed, setCollapsed }) => {
     // 3. NGHIỆP VỤ KHÁC
     ...(role === 'admin' || role === 'hr' ? [
       { type: 'divider', label: 'Nghiệp vụ' },
+      { key: '/danh-sach-cham-cong', icon: <CheckSquare size={20} />, label: 'Danh Sách Chấm Công' },
       { key: '/nghi-phep', icon: <Calendar size={20} />, label: 'Nghỉ phép' },
       { key: '/thuong-phat', icon: <Gift size={20} />, label: 'Thưởng / Phạt' },
     ] : []),

@@ -10,6 +10,7 @@ import NhanVienPage from './pages/NhanVien/NhanVienPage';
 import TinhLuongPage from './pages/Luong/TinhLuongPage';
 import BaoCaoThuNhap from './pages/BaoCao/BaoCaoThuNhap';
 import ChamCongPage from './pages/ChamCong/ChamCongPage';
+import DanhSachChamCongPage from './pages/ChamCong/DanhSachChamCongPage';
 import ComingSoonPage from './pages/ComingSoon/ComingSoonPage';
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
             <Route path="tinh-luong" element={<TinhLuongPage />} />
             <Route path="bao-cao" element={<BaoCaoThuNhap />} />
             <Route path="cham-cong" element={<ChamCongPage />} />
+            <Route path="danh-sach-cham-cong" element={<DanhSachChamCongPage />} />
 
             {/* Nghiệp vụ khác  */}
             <Route path="nghi-phep" element={<ComingSoonPage title="Quản Lý Nghỉ Phép" />} />
