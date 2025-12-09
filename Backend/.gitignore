@@ -1,23 +1,2 @@
-#Bỏ qua thư mục không cân thiết 
-
-/node_modules
 .env
-.env.local
-.env.development.local
-.env.production.local
-/dist
-/build
-/temp
-# 3. File Log và Cache
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log
-*.log
-*.sqlite
-/coverage
-
-# 4. File của Hệ điều hành và Editor
-.DS_Store
-Thumbs.db
-.vscode/
-
+node_modules/
