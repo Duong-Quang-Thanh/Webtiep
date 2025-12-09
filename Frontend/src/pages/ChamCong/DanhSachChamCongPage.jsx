@@ -16,7 +16,7 @@ const DanhSachChamCongPage = () => {
 
   const [filters, setFilters] = useState({
     ma_phong: "",
-    ngay: "",
+    ngay: dayjs().format('YYYY-MM-DD'),
     thang: dayjs().month() + 1,
     nam: dayjs().year(),
     trang_thai_ca: "",
@@ -69,7 +69,7 @@ const DanhSachChamCongPage = () => {
   const handleReset = () => {
     setFilters({
       ma_phong: "",
-      ngay: "",
+      ngay: dayjs().format('YYYY-MM-DD'),
       thang: dayjs().month() + 1,
       nam: dayjs().year(),
       trang_thai_ca: "",
