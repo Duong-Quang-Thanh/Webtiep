@@ -46,6 +46,23 @@ export const update = async (req, res) => {
                 message: `Không tìm thấy hoặc không có thay đổi cho nhân viên mã ${ma_nhan_vien}.` 
             });
         }
+
+        // Nếu có thay đổi phòng ban hoặc chức vụ, lấy mã nhân viên mới
+        if (req.body.ma_phong || req.body.ma_chuc_vu) {
+            const nhanVienCapNhat = await nhanVienService.getNhanVienById(ma_nhan_vien);
+            const nhanVienMoi = nhanVienCapNhat || await nhanVienService.getNhanVienById(
+                await nhanVienService.generateMaNhanVien(
+                    req.body.ma_phong || (await nhanVienService.getNhanVienById(ma_nhan_vien)).ma_phong,
+                    req.body.ma_chuc_vu || (await nhanVienService.getNhanVienById(ma_nhan_vien)).ma_chuc_vu
+                )
+            );
+            
+            return res.status(200).send({ 
+                message: "Cập nhật nhân viên thành công.",
+                data: nhanVienMoi
+            });
+        }
+
         res.status(200).send({ message: "Cập nhật nhân viên thành công." });
     } catch (error) {
         res.status(500).send({ message: "Lỗi khi cập nhật nhân viên: " + error.message });

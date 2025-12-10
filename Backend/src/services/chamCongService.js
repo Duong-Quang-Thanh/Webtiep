@@ -142,7 +142,7 @@ export const updateGioRaAndCheckChuyenCan = async (ma_nhan_vien, ngay_lam, gio_r
     return record;
 };
 
-// 3. Lấy danh sách chấm công CÓ BỘ LỌC (Cho trang Quản lý/HR)
+// 3. Lấy danh sách chấm công CÓ BỘ LỌC (Cho trang Quản lý/HR) - với tính toán giờ làm
 export const getDanhSachChamCongFilter = async (filters) => {
     const { ma_phong, ngay, thang, nam, trang_thai_ca } = filters;
 
@@ -194,10 +194,37 @@ export const getDanhSachChamCongFilter = async (filters) => {
         order: [['ngay_lam', 'DESC'], ['gio_vao', 'ASC']]
     });
 
-    return records;
+    // D. Tính toán giờ làm và flatten dữ liệu
+    const recordsWithHours = records.map(record => {
+        let tongGioLam = 0;
+
+        if (record.gio_vao && record.gio_ra) {
+            const checkIn = moment(record.gio_vao, 'HH:mm:ss');
+            const checkOut = moment(record.gio_ra, 'HH:mm:ss');
+
+            if (checkOut.isValid() && checkIn.isValid() && checkOut.isAfter(checkIn)) {
+                const duration = moment.duration(checkOut.diff(checkIn));
+                tongGioLam = parseFloat(duration.asHours().toFixed(2));
+            }
+        }
+
+        const recordJSON = record.toJSON();
+        
+        return {
+            ...recordJSON,
+            ma_nhan_vien: recordJSON.nhanVien?.ma_nhan_vien || '',
+            ten_nhan_vien: recordJSON.nhanVien?.ten_nhan_vien || '',
+            ten_phong: recordJSON.nhanVien?.phongBan?.ten_phong || '-',
+            ma_phong: recordJSON.nhanVien?.phongBan?.ma_phong || '',
+            ten_chuc_vu: recordJSON.nhanVien?.chucVu?.ten_chuc_vu || '',
+            tong_gio_lam: tongGioLam
+        };
+    });
+
+    return recordsWithHours;
 };
 
-// 4. Lấy lịch sử chấm công cá nhân
+// 4. Lấy lịch sử chấm công cá nhân (với tính toán giờ làm)
 export const getChamCongByMaNv = async (ma_nhan_vien, thang, nam, userRole, currentUserId) => {
     // Bảo mật: Nhân viên chỉ xem được của mình
     if (userRole === ROLES.NHAN_VIEN && ma_nhan_vien !== currentUserId) {
@@ -220,7 +247,27 @@ export const getChamCongByMaNv = async (ma_nhan_vien, thang, nam, userRole, curr
         order: [['ngay_lam', 'ASC']]
     });
 
-    return { records: records };
+    // Tính toán giờ làm cho mỗi bản ghi
+    const recordsWithHours = records.map(record => {
+        let tongGioLam = 0;
+
+        if (record.gio_vao && record.gio_ra) {
+            const checkIn = moment(record.gio_vao, 'HH:mm:ss');
+            const checkOut = moment(record.gio_ra, 'HH:mm:ss');
+
+            if (checkOut.isValid() && checkIn.isValid() && checkOut.isAfter(checkIn)) {
+                const duration = moment.duration(checkOut.diff(checkIn));
+                tongGioLam = parseFloat(duration.asHours().toFixed(2));
+            }
+        }
+
+        return {
+            ...record.toJSON(),
+            tong_gio_lam: tongGioLam
+        };
+    });
+
+    return { records: recordsWithHours };
 };
 
 // 5. Lấy Summary (Đếm số lượng nhân viên theo trạng thái) - Dùng cho Dashboard đơn giản

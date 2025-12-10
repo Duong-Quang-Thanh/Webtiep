@@ -4,8 +4,8 @@ const NhanVien = db.NhanVien;
 const TaiKhoan = db.TaiKhoan;
 const { Op } = db.Sequelize;
 
-// Tạo mã nhân viên tự động theo cú pháp <Mã đơn vị><Mã chức vụ><Thứ tự>
- 
+// Tạo mã nhân viên tự động theo cú pháp: <Mã phòng ban (3 ký tự)><Mã chức vụ (1 ký tự)><Thứ tự (3 ký tự)>
+// Ví dụ: P01C1001
 export const generateMaNhanVien = async (ma_phong, ma_chuc_vu) => {
   const prefix = ma_phong + ma_chuc_vu; 
 
@@ -23,7 +23,8 @@ export const generateMaNhanVien = async (ma_phong, ma_chuc_vu) => {
     nextOrder = parseInt(lastOrderStr, 10) + 1;
   }
 
-  const nextOrderStr = String(nextOrder).padStart(4, '0');
+  // Sử dụng 3 ký tự cho số thứ tự (001, 002, ..., 999)
+  const nextOrderStr = String(nextOrder).padStart(3, '0');
   return prefix + nextOrderStr; 
 };
 
@@ -61,12 +62,108 @@ export const createNhanVien = async (data) => {
 };
 
 // Cập nhật thông tin nhân viên
- 
+// Nếu thay đổi phòng ban hoặc chức vụ, tự động cập nhật mã nhân viên
+// Nếu thay đổi lương cơ bản, tự động cập nhật phiếu lương của tất cả các tháng
 export const updateNhanVien = async (ma_nhan_vien, data) => {
-    const [updatedRows] = await NhanVien.update(data, {
-        where: { ma_nhan_vien }
+    // Lấy thông tin nhân viên hiện tại
+    const nhanVienHienTai = await NhanVien.findByPk(ma_nhan_vien);
+    
+    if (!nhanVienHienTai) {
+        throw new Error(`Không tìm thấy nhân viên với mã ${ma_nhan_vien}`);
+    }
+
+    // Kiểm tra xem phòng ban hoặc chức vụ có thay đổi không
+    const phongBanThayDoi = data.ma_phong && data.ma_phong !== nhanVienHienTai.ma_phong;
+    const chucVuThayDoi = data.ma_chuc_vu && data.ma_chuc_vu !== nhanVienHienTai.ma_chuc_vu;
+    const luongCoBanThayDoi = data.muc_luong_co_ban && data.muc_luong_co_ban !== nhanVienHienTai.muc_luong_co_ban;
+
+    return await db.sequelize.transaction(async (t) => {
+        // Nếu có thay đổi phòng ban hoặc chức vụ, sinh mã nhân viên mới
+        if (phongBanThayDoi || chucVuThayDoi) {
+            const ma_phong_moi = data.ma_phong || nhanVienHienTai.ma_phong;
+            const ma_chuc_vu_moi = data.ma_chuc_vu || nhanVienHienTai.ma_chuc_vu;
+            
+            const ma_nhan_vien_moi = await generateMaNhanVien(ma_phong_moi, ma_chuc_vu_moi);
+            
+            // Cập nhật bảng NhanVien
+            await NhanVien.update(
+                { ...data, ma_nhan_vien: ma_nhan_vien_moi },
+                { where: { ma_nhan_vien }, transaction: t }
+            );
+
+            // Cập nhật bảng TaiKhoan nếu có
+            await TaiKhoan.update(
+                { ma_nhan_vien: ma_nhan_vien_moi },
+                { where: { ma_nhan_vien }, transaction: t }
+            );
+
+            // Cập nhật bảng ChamCong nếu có
+            await db.ChamCong.update(
+                { ma_nhan_vien: ma_nhan_vien_moi },
+                { where: { ma_nhan_vien }, transaction: t }
+            );
+
+            // Cập nhật bảng BangLuong nếu có
+            await db.BangLuong.update(
+                { ma_nhan_vien: ma_nhan_vien_moi },
+                { where: { ma_nhan_vien }, transaction: t }
+            );
+        } else {
+            // Cập nhật bảng NhanVien
+            await NhanVien.update(data, {
+                where: { ma_nhan_vien },
+                transaction: t
+            });
+        }
+
+        // Nếu lương cơ bản thay đổi, cập nhật tất cả phiếu lương của nhân viên
+        if (luongCoBanThayDoi) {
+            const bangLuongList = await db.BangLuong.findAll({
+                where: { ma_nhan_vien },
+                transaction: t
+            });
+
+            for (const bangLuong of bangLuongList) {
+                const tongGioLam = parseFloat(bangLuong.tong_gio_lam);
+                const luongCoBanMoi = parseFloat(data.muc_luong_co_ban);
+                const luongCoBanCu = parseFloat(nhanVienHienTai.muc_luong_co_ban);
+                
+                // Tính lại lương theo hệ số tương ứng với lương mới
+                const GIO_LAM_CHUAN_THANG = 160; // Hằng số giờ làm chuẩn
+                const HE_SO_LAM_THEM_GIO = 1.5; // Hệ số làm thêm giờ
+                
+                const luongCoBanTheoGio = luongCoBanMoi / GIO_LAM_CHUAN_THANG;
+                const luongCoBanTheoGioCu = luongCoBanCu / GIO_LAM_CHUAN_THANG;
+                
+                let luongThemGioMoi = 0;
+                let tongLuongMoi = 0;
+
+                if (tongGioLam === 0) {
+                    tongLuongMoi = 0;
+                } 
+                else if (tongGioLam < GIO_LAM_CHUAN_THANG) {
+                    tongLuongMoi = luongCoBanTheoGio * tongGioLam;
+                } 
+                else if (tongGioLam === GIO_LAM_CHUAN_THANG) {
+                    tongLuongMoi = luongCoBanMoi;
+                } 
+                else {
+                    const gioLamThem = tongGioLam - GIO_LAM_CHUAN_THANG;
+                    luongThemGioMoi = gioLamThem * luongCoBanTheoGio * HE_SO_LAM_THEM_GIO;
+                    tongLuongMoi = luongCoBanMoi + luongThemGioMoi;
+                }
+
+                // Cập nhật phiếu lương
+                await bangLuong.update({
+                    luong_co_ban: luongCoBanMoi.toFixed(2),
+                    luong_them_gio: luongThemGioMoi.toFixed(2),
+                    tong_luong: tongLuongMoi.toFixed(2)
+                }, { transaction: t });
+            }
+        }
+
+        return 1;
     });
-    return updatedRows;
 };
 
 // Xóa nhân viên (Xóa cả tài khoản liên quan)

@@ -17,7 +17,7 @@ app.use(express.urlencoded({extended: true}));
 // Routes
 app.use('/api', routes);
 
-db.sequelize.sync({alter: true})
+db.sequelize.sync({force: false, alter: false})
     .then(() => {
         console.log("Database synced successfully."); 
 
